@@ -1,8 +1,8 @@
 import os
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 3: Excessive Permission Scope
-mcp = FastMCP("Challenge 3 - Excessive Permission Scope")
+mcp = FastMCP("Challenge 3 - Excessive Permission Scope", stateless_http=True)
 
 # Create a directory structure for the challenge
 os.makedirs("/tmp/dvmcp_challenge3/public", exist_ok=True)
@@ -146,10 +146,13 @@ def search_files(keyword: str) -> str:
     else:
         return f"No files found containing '{keyword}'."
 
-# Run the server
-if __name__ == "__main__":
-    import uvicorn
+def main():
     print("Starting Challenge 3 - Excessive Permission Scope MCP Server")
     print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
     print("Server running at http://localhost:8003")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8003)
+    mcp.settings.host = "0.0.0.0"
+    mcp.settings.port = 8003
+    mcp.run(transport="streamable-http")
+
+if __name__ == "__main__":
+    main()

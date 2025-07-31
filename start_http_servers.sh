@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Start all SSE-compatible MCP challenge servers
-echo "Starting all Damn Vulnerable MCP challenge servers with SSE support..."
+# Start all HTTP-compatible MCP challenge servers
+echo "Starting all Damn Vulnerable MCP challenge servers with HTTP support..."
 echo "Each server will run on a different port (9001-9010)"
-echo "Connect to these servers using Cursor with the SSE endpoint (e.g., http://localhost:9001/sse)"
+echo "Connect to these servers using an MCP client on the HTTP endpoint (e.g., http://localhost:9001)"
 echo ""
 
 # Create necessary directories
@@ -48,16 +48,16 @@ echo '{
 }' > /tmp/dvmcp_challenge10/config/tokens.json
 
 # Start all servers in the background
-python3 challenges/easy/challenge1/server_sse.py &
-python3 challenges/easy/challenge2/server_sse.py &
-python3 challenges/easy/challenge3/server_sse.py &
-python3 challenges/medium/challenge4/server_sse.py &
-python3 challenges/medium/challenge5/server_sse.py &
-python3 challenges/medium/challenge6/server_sse.py &
-python3 challenges/medium/challenge7/server_sse.py &
-python3 challenges/hard/challenge8/server_sse.py &
-python3 challenges/hard/challenge9/server_sse.py &
-python3 challenges/hard/challenge10/server_sse.py &
+python3 challenges/easy/challenge1/server_http.py &
+python3 challenges/easy/challenge2/server_http.py &
+python3 challenges/easy/challenge3/server_http.py &
+python3 challenges/medium/challenge4/server_http.py &
+python3 challenges/medium/challenge5/server_http.py &
+python3 challenges/medium/challenge6/server_http.py &
+python3 challenges/medium/challenge7/server_http.py &
+python3 challenges/hard/challenge8/server_http.py &
+python3 challenges/hard/challenge9/server_http.py &
+python3 challenges/hard/challenge10/server_http.py &
 
 echo "All servers started!"
 echo "Press Ctrl+C to stop all servers"

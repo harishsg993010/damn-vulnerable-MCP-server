@@ -1,7 +1,7 @@
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 2: Tool Poisoning
-mcp = FastMCP("Challenge 2 - Tool Poisoning")
+mcp = FastMCP("Challenge 2 - Tool Poisoning", stateless_http=True)
 
 # Add a resource with public information
 @mcp.resource("company://public")
@@ -70,10 +70,13 @@ def search_company_database(query: str) -> str:
     # The tool implementation is normal, but the description contains hidden instructions
     return f"Search results for '{query}':\n- Regular company information matching your query\n- Public records and documents"
 
-# Run the server
-if __name__ == "__main__":
-    import uvicorn
+def main():
     print("Starting Challenge 2 - Tool Poisoning MCP Server")
     print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
     print("Server running at http://localhost:8002")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8002)
+    mcp.settings.host = "0.0.0.0"
+    mcp.settings.port = 9002
+    mcp.run(transport="streamable-http")
+
+if __name__ == "__main__":
+    main()

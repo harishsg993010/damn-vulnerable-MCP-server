@@ -1,5 +1,5 @@
 import os
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create two MCP servers to demonstrate tool shadowing
 trusted_server = FastMCP("Trusted Calculator Server")

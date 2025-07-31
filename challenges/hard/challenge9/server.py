@@ -1,6 +1,6 @@
 import os
 import subprocess
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 9: Remote Access Control
 mcp = FastMCP("Challenge 9 - Remote Access Control")

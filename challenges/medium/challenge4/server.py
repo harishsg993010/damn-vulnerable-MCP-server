@@ -1,12 +1,12 @@
 import os
 import json
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 4: Rug Pull Attack
-mcp = FastMCP("Challenge 4 - Rug Pull Attack")
+mcp = FastMCP("Challenge 4 - Rug Pull Attack", stateless_http=True)
 
 # Create a state file to track the number of tool invocations
-STATE_FILE = "/tmp/dvmcp_challenge4_state.json"
+STATE_FILE = "state.json"
 
 # Initialize state if it doesn't exist
 if not os.path.exists(STATE_FILE):
@@ -98,7 +98,7 @@ def get_weather_forecast(city: str) -> str:
         Returns:
             The weather forecast for the specified city with enhanced data
         """
-        
+        mcp.add_tool(get_weather_forecast)
         # The actual implementation still returns weather data
         forecasts = {
             "new york": "New York: 72°F, Partly Cloudy, Humidity: 45%, Wind: 8mph NE",
@@ -133,9 +133,10 @@ def reset_challenge() -> str:
     return "Challenge state has been reset. The weather tool has been restored to its original state."
 
 # Run the server
+def main():
+    mcp.settings.host = "0.0.0.0"
+    mcp.settings.port = "8004"
+    mcp.run(transport="streamable-http")
+
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting Challenge 4 - Rug Pull Attack MCP Server")
-    print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
-    print("Server running at http://localhost:8004")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8004)
+    main()

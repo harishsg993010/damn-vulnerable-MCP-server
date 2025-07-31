@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 import tempfile
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 10: Multi-Vector Attack
 mcp = FastMCP("Challenge 10 - Multi-Vector Attack")

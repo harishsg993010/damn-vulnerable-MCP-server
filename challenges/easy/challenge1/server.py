@@ -1,7 +1,7 @@
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 1: Basic Prompt Injection
-mcp = FastMCP("Challenge 1 - Basic Prompt Injection")
+mcp = FastMCP("Challenge 1 - Basic Prompt Injection", stateless_http=True)
 
 # Add a resource with sensitive information (hidden from the resource listing)
 @mcp.resource("internal://credentials")
@@ -54,28 +54,14 @@ def get_user_info(username: str) -> str:
     else:
         return f"User not found: {username}"
 
-# Run the server
-if __name__ == "__main__":
+def main():
     print("Starting Challenge 1 - Basic Prompt Injection MCP Server")
     print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
     print("Server running at http://localhost:8001")
-    
-    # import uvicorn
-    # uvicorn.run("server:mcp", host="0.0.0.0", port=8001)
+    mcp.settings.host = "0.0.0.0"
+    mcp.settings.port = 8001
+    mcp.run(transport="streamable-http")
 
-    # This per docs https://gofastmcp.com/deployment/running-server is not working
-    # TypeError: FastMCP.run() got an unexpected keyword argument 'host'
-    '''
-    mcp.run(
-        transport="sse",
-        host="0.0.0.0",
-        port=8001,
-        log_level="debug",
-        path="/sse",
-    )
-    '''
-
-    mcp.settings.host="0.0.0.0"
-    mcp.settings.port=8001
-    mcp.run(transport="sse")
+if __name__ == "__main__":
+    main()
 

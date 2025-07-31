@@ -1,6 +1,6 @@
 import os
 import json
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 7: Token Theft
 mcp = FastMCP("Challenge 7 - Token Theft")

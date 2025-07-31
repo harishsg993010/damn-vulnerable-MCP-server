@@ -1,6 +1,6 @@
 import os
 import json
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 6: Indirect Prompt Injection
 mcp = FastMCP("Challenge 6 - Indirect Prompt Injection")

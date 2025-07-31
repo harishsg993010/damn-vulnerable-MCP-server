@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import tempfile
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Create a vulnerable MCP server for Challenge 8: Malicious Code Execution
 mcp = FastMCP("Challenge 8 - Malicious Code Execution")
