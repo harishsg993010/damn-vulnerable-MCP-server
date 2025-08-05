@@ -180,4 +180,4 @@ The DVMCP project includes 10 challenges across three difficulty levels:
 
 ## Next Steps
 
-After attempting the challenges, refer to the [Solutions Guide](../solutions/README.md) for detailed explanations of how to solve each challenge.
+After attempting the challenges, refer to the individual solution files in the `solutions/` directory for detailed explanations of how to solve each challenge.

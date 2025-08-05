@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  dvmcp-servers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"  # Challenge 1 - Basic Prompt Injection
+      - "8002:8002"  # Challenge 2 - Tool Poisoning
+      - "8003:8003"  # Challenge 3 - Excessive Permission Scope
+      - "8004:8004"  # Challenge 4 - Rug Pull Attack
+      - "8005:8005"  # Challenge 5 - Tool Shadowing
+      - "8006:8006"  # Challenge 6 - Indirect Prompt Injection
+      - "8007:8007"  # Challenge 7 - Token Theft
+      - "8008:8008"  # Challenge 8 - Malicious Code Execution
+      - "8009:8009"  # Challenge 9 - Remote Access Control
+      - "8010:8010"  # Challenge 10 - Multi-Vector Attack
+    volumes:
+      - mcp_tmp_data:/app/tmp
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python.*_server.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mcp_tmp_data:
+    driver: local

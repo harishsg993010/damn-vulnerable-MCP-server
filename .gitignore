@@ -20,13 +20,26 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
+# JSON files (as requested)
+*.json
+
+# Temporary folders and files (as requested)
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+
 # PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -47,7 +60,6 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-cover/
 
 # Translations
 *.mo
@@ -70,7 +82,6 @@ instance/
 docs/_build/
 
 # PyBuilder
-.pybuilder/
 target/
 
 # Jupyter Notebook
@@ -84,17 +95,13 @@ ipython_config.py
 .python-version
 
 # pipenv
-Pipfile.lock
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
 
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-.pdm-python
-.pdm-build/
-
-# PEP 582
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
 # Celery stuff
@@ -131,68 +138,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# IDEs
+# IDE and Editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
+.vim/
 
-# Claude settings
-.claude/*
-
-# Testing artifacts
-.pytest_cache/
-.coverage
-htmlcov/
-coverage.xml
-*.cover
-.hypothesis/
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-.eggs/
-
-# Virtual environments
-venv/
-env/
-ENV/
-.venv/
-.env/
-
-# Package manager files
-# Note: Do not ignore poetry.lock or uv.lock
-Pipfile.lock
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-*~
-.DS_Store
-Thumbs.db
-
-# Log files
-*.log
-logs/
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-# OS files
+# OS generated files
 .DS_Store
 .DS_Store?
 ._*
@@ -200,3 +154,96 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Docker
+.dockerignore
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+.sass-cache/
+.connect.lock
+.typings/
+
+# System Files
+*.lnk
+
+# Local environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# MCP server runtime data
+mcp_data/
+server_state/
+
+# Challenge state files (but allow the template state.json in challenges/medium/challenge4/)
+state.json
+!challenges/medium/challenge4/state.json
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z

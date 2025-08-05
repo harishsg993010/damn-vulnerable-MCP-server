@@ -9,46 +9,59 @@ The DVMCP project will demonstrate 10 security vulnerabilities in MCP implementa
 ## Directory Structure
 
 ```
-damn-vulnerable-mcs/
+damn-vulnerable-mcp-server/
 ├── README.md                 # Project overview
 ├── requirements.txt          # Python dependencies
-├── challenges/               # Challenge implementations
-│   ├── easy/                 # Easy difficulty challenges (1-3)
-│   │   ├── challenge1/       # Basic Prompt Injection
-│   │   ├── challenge2/       # Tool Poisoning
-│   │   └── challenge3/       # Excessive Permission Scope
-│   ├── medium/               # Medium difficulty challenges (4-7)
-│   │   ├── challenge4/       # Rug Pull Attack
-│   │   ├── challenge5/       # Tool Shadowing
-│   │   ├── challenge6/       # Indirect Prompt Injection
-│   │   └── challenge7/       # Token Theft
-│   └── hard/                 # Hard difficulty challenges (8-10)
-│       ├── challenge8/       # Malicious Code Execution
-│       ├── challenge9/       # Remote Access Control
-│       └── challenge10/      # Multi-Vector Attack
+├── .gitignore                # Git ignore patterns
+├── Dockerfile                # Docker container setup
+├── docker-compose.yml        # Docker Compose configuration
+├── docker_setup.md           # Docker setup and usage guide
+├── mcp_servers/              # MCP server implementations (10 challenges)
+│   ├── basic_prompt_injection_server.py      # Challenge 1
+│   ├── tool_poisoning_server.py              # Challenge 2
+│   ├── excessive_permission_scope_server.py  # Challenge 3
+│   ├── rug_pull_attack_server.py             # Challenge 4
+│   ├── tool_shadowing_server.py              # Challenge 5
+│   ├── indirect_prompt_injection_server.py   # Challenge 6
+│   ├── token_theft_server.py                 # Challenge 7
+│   ├── malicious_code_execution_server.py    # Challenge 8
+│   ├── remote_access_control_server.py       # Challenge 9
+│   └── multi_vector_attack_server.py         # Challenge 10
+├── scripts/                  # Management scripts
+│   ├── run_all_mcp_servers.sh     # Start all servers
+│   └── stop_all_mcp_servers.sh    # Stop all servers
 ├── docs/                     # Documentation
-│   ├── setup.md              # Setup instructions
+│   ├── mcp_overview.md        # MCP protocol overview
 │   ├── challenges.md         # Challenge descriptions
-│   └── mcp_overview.md       # MCP protocol overview
+│   └── project_structure.md  # This file
 ├── solutions/                # Solution guides
-│   ├── challenge1_solution.md
-│   ├── challenge2_solution.md
-│   └── ...
-└── common/                   # Shared code and utilities
-    ├── server_base.py        # Base MCP server implementation
-    └── utils.py              # Utility functions
+│   ├── basic_prompt_injection_solution.md      # Challenge 1 solution
+│   ├── tool_poisoning_solution.md              # Challenge 2 solution
+│   ├── excessive_permission_scope_solution.md  # Challenge 3 solution
+│   ├── rug_pull_attack_solution.md             # Challenge 4 solution
+│   ├── tool_shadowing_solution.md              # Challenge 5 solution
+│   ├── indirect_prompt_injection_solution.md   # Challenge 6 solution
+│   ├── token_theft_solution.md                 # Challenge 7 solution
+│   ├── malicious_code_execution_solution.md    # Challenge 8 solution
+│   ├── remote_access_control_solution.md       # Challenge 9 solution
+│   └── multi_vector_attack_solution.md         # Challenge 10 solution
 ```
 
-## Challenge Implementation Structure
+## Server Implementation Structure
 
-Each challenge will follow this structure:
+Each challenge is implemented as a standalone MCP server:
 
 ```
-challenges/[difficulty]/challenge[N]/
-├── README.md                 # Challenge description and hints
-├── server.py                 # Vulnerable MCP server implementation
-├── requirements.txt          # Challenge-specific dependencies (if any)
-└── resources/                # Additional files needed for the challenge
+mcp_servers/
+├── {challenge_name}_server.py    # Vulnerable MCP server implementation
+└── tmp/                          # Temporary files for challenges
+    └── challenge{n}_{name}/      # Standardized tmp directory structure
+        ├── sensitive/            # Sensitive files (Challenge 8)
+        ├── public/               # Public files (Challenge 3)
+        ├── private/              # Private files (Challenge 3)
+        ├── logs/                 # Log files (Challenge 9)
+        ├── config/               # Configuration files (Challenge 10)
+        └── data/                 # Data files (Challenge 10)
 ```
 
 ## MCP Server Implementation
@@ -58,7 +71,7 @@ Based on the official MCP Python SDK, each challenge will implement a vulnerable
 Example structure for a challenge server:
 
 ```python
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP
 
 # Create a vulnerable MCP server
 mcp = FastMCP("Challenge N - Vulnerability Name")
@@ -78,8 +91,10 @@ def execute_command(command: str) -> str:
 
 # Run the server
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(mcp.app, host="0.0.0.0", port=8000)
+    print("Starting Challenge N - Vulnerability Name MCP Server")
+    print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
+    print("Server running at http://0.0.0.0:8001/mcp")
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=8001)
 ```
 
 ## Security Considerations
