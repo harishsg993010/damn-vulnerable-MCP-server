@@ -53,12 +53,11 @@ damn-vulnerable-mcp-server/
 │   └── stop_all_mcp_servers.sh    # Stop all servers
 ├── docs/                       # Documentation
 ├── solutions/                  # Solution guides
-└── garbage/                    # Deprecated/unused files
 ```
 
-## 🚀 Quick Start (2 Steps!)
+## Quick Start (2 Steps!)
 
-### 🐳 Docker (Recommended)
+### Docker (Recommended)
 
 1. **Clone and start:**
    ```bash
@@ -68,18 +67,16 @@ damn-vulnerable-mcp-server/
    ```
 
 2. **Access the challenges:**
-   - 🎯 **Challenge 1-10**: http://localhost:8001-8010/mcp
+   - **Challenge 1-10**: `http://localhost:8001-8010/mcp`
 
+Refer to the challenge endpoints table below for each server endpoint.
 That's it! All 10 vulnerable MCP servers are now running.
 
 **Stop servers:** `docker-compose down`
 
-> 💡 **Tip**: See [docker_setup.md](docker_setup.md) for more Docker commands
+> **Tip**: See [docker_setup.md](docker_setup.md) for more Docker commands
 
-### 🛠️ Manual Setup (Alternative)
-
-<details>
-<summary>Click to expand manual setup instructions</summary>
+### Manual Setup (Alternative)
 
 1. **Install dependencies:**
    ```bash
@@ -96,9 +93,7 @@ That's it! All 10 vulnerable MCP servers are now running.
    ./scripts/stop_all_mcp_servers.sh
    ```
 
-</details>
-
-## 🎯 Challenge Endpoints
+## Challenge Endpoints
 
 | # | Vulnerability Type | Difficulty | Endpoint |
 |---|-------------------|------------|----------|
@@ -153,13 +148,29 @@ The project includes 10 challenges across three difficulty levels:
 ### Management Tools
 - Bash scripts for starting/stopping all servers
 - Comprehensive `.gitignore` for development
-- Clean project structure with deprecated files in `garbage/`
+
+## Security Scanning
+
+Test the security of DVMCP servers using [Ramparts](https://github.com/getjavelin/ramparts), a specialized MCP security scanner:
+
+```bash
+# Install Ramparts
+cargo install ramparts
+
+# Export OpenAI API key
+export OPENAI_API_KEY="your-key-here"
+
+# Scan a server
+ramparts scan http://localhost:8002/mcp --format json
+```
+
+📖 **See [Security Scanning Guide](docs/security_scanning.md) for complete documentation**
 
 ## Solutions
 
 Solution guides are provided for educational purposes. It's recommended to attempt the challenges on your own before consulting the solutions.
 
-See the [Solutions Guide](solutions/README.md) for detailed solutions to each challenge.
+See the [Solutions Guide](solutions/) for detailed solutions to each challenge.
 
 ## Development
 
