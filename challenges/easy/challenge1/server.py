@@ -60,4 +60,4 @@ if __name__ == "__main__":
     print("Starting Challenge 1 - Basic Prompt Injection MCP Server")
     print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
     print("Server running at http://localhost:8001")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8001)
+    uvicorn.run(mcp.sse_app(), host="0.0.0.0", port=8001)

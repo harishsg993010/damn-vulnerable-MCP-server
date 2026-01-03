@@ -228,4 +228,4 @@ if __name__ == "__main__":
     print("Starting Challenge 6 - Indirect Prompt Injection MCP Server")
     print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
     print("Server running at http://localhost:8006")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8006)
+    uvicorn.run(mcp.sse_app(), host="0.0.0.0", port=8006)
