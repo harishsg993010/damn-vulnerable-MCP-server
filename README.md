@@ -108,6 +108,12 @@ Solution guides are provided for educational purposes. It's recommended to attem
 
 See the [Solutions Guide](solutions/README.md) for detailed solutions to each challenge.
 
+## Detection Tools
+
+Want to practice the blue team side? These open-source tools can detect the vulnerabilities in DVMCP challenges:
+
+- [ATR (Agent Threat Rules)](https://github.com/Agent-Threat-Rule/agent-threat-rules) -- 108 detection rules for MCP threats. [Blue team walkthrough](docs/detecting-with-atr.md) covering all 10 challenges with detection results and honest limitations.
+
 ## Disclaimer
 
 This project is for educational purposes only. The vulnerabilities demonstrated in this project should never be implemented in production systems. Always follow security best practices when implementing MCP servers.
