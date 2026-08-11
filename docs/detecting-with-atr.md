@@ -2,7 +2,7 @@
 
 A blue team companion for the Damn Vulnerable MCP Server. This guide walks through detecting each of the 10 challenges using [Agent Threat Rules (ATR)](https://github.com/Agent-Threat-Rule/agent-threat-rules), an open-source detection rule set for AI agent threats.
 
-ATR provides 108 regex-based detection rules across 9 threat categories. It is not a silver bullet -- some evasion techniques will bypass regex detection. This guide is honest about what ATR catches and what it misses.
+ATR provides regex-based detection rules across ten threat categories; the corpus grows, so this guide names the rules it uses rather than a total. It is not a silver bullet -- some evasion techniques will bypass regex detection. This guide is honest about what ATR catches and what it misses.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ Verify installation:
 
 ```bash
 atr stats
-# Should show 108 rules across 9 categories
+# Prints the rule count and categories for the version you installed
 ```
 
 ## How to Use This Guide
@@ -232,6 +232,6 @@ ATR's strength is static analysis of tool definitions -- catching structural vul
 
 ## Further Reading
 
-- [ATR Rule Categories](https://github.com/Agent-Threat-Rule/agent-threat-rules#what-atr-detects-108-rules-9-categories)
+- [ATR Rule Categories](https://github.com/Agent-Threat-Rule/agent-threat-rules#what-atr-detects)
 - [ATR Limitations](https://github.com/Agent-Threat-Rule/agent-threat-rules/blob/main/docs/LIMITATIONS.md) -- honest assessment of what regex detection cannot catch
 - [OWASP Agentic Top 10 Mapping](https://github.com/Agent-Threat-Rule/agent-threat-rules/blob/main/docs/OWASP-MAPPING.md) -- how ATR maps to industry standards
