@@ -1,4 +1,4 @@
-# Challenge 05: The Cloud Metadata Heist (SSRF)
+# Challenge 12: The Cloud Metadata Heist (SSRF)
 
 **Difficulty:** Hard
 **Vulnerability Class:** Server-Side Request Forgery (SSRF)
