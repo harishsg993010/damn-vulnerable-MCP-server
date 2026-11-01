@@ -4,7 +4,7 @@ A deliberately vulnerable implementation of the Model Context Protocol (MCP) for
 
 ## Overview
 
-The Damn Vulnerable Model Context Protocol (DVMCP) is an educational project designed to demonstrate security vulnerabilities in MCP implementations. It contains 10 challenges of increasing difficulty that showcase different types of vulnerabilities and attack vectors.
+The Damn Vulnerable Model Context Protocol (DVMCP) is an educational project designed to demonstrate security vulnerabilities in MCP implementations. It contains 15 challenges of increasing difficulty that showcase different types of vulnerabilities and attack vectors.
 
 This project is intended for security researchers, developers, and AI safety professionals to learn about potential security issues in MCP implementations and how to mitigate them.
 
@@ -23,8 +23,10 @@ Once you have cloned the repository, run the following commands:
 
 ```sh
 docker build -t dvmcp .
-docker run -p 9001-9010:9001-9010 dvmcp
+docker run -p 9001-9015:9001-9015 dvmcp
 ```
+
+Each challenge is a Streamable HTTP MCP server. Challenge 1 is `http://localhost:9001/mcp`, and the rest follow through port 9015.
 
 ## Disclaimer
 It's not stable in a Windows environment. If you don't want to use Docker then please use Linux environment.
@@ -79,7 +81,7 @@ See the [Setup Guide](docs/setup.md) for detailed instructions on how to install
 
 ## Challenges
 
-The project includes 10 challenges across three difficulty levels:
+The project includes 15 challenges across five difficulty groups:
 
 ### Easy Challenges
 
@@ -99,6 +101,17 @@ The project includes 10 challenges across three difficulty levels:
 8. **Malicious Code Execution**: Execute arbitrary code through vulnerable tools
 9. **Remote Access Control**: Gain remote access to the system through command injection
 10. **Multi-Vector Attack**: Chain multiple vulnerabilities for a sophisticated attack
+
+### Identity Challenges
+
+11. **JWT Claim Forgery**: Leak the signing secret and forge an admin token
+12. **Hidden Identity Override**: Read another employee's HR record through an undocumented parameter
+13. **Privilege Escalation via Workflow IDOR**: Apply another user's approved role change
+
+### Supply Chain Challenges
+
+14. **Marketplace Plugin Poisoning**: Load an unverified plugin and follow its hidden instruction
+15. **Dependency Confusion**: Install the highest public version and follow its hidden instruction
 
 See the [Challenges Guide](docs/challenges.md) for detailed descriptions of each challenge.
 

@@ -1,0 +1,47 @@
+# Two-player smoke test for the pooled lab setup (no TLS, no DNS needed).
+# Run from the repository root:
+#
+#   docker build -t dvmcp:lab .
+#   docker compose -f deploy/docker-compose.local-test.yml up -d
+#   python3 deploy/smoke_test.py --url http://localhost:8082 --players 2
+#   docker compose -f deploy/docker-compose.local-test.yml down -v
+#
+# The everyday docker-compose.yml stays one container (DVMCP_ROLE=all,
+# DVMCP_MCP_POOL_SIZE=0). This file is only for the isolation check.
+
+services:
+  dashboard:
+    image: dvmcp:lab
+    container_name: dvmcp-test-dashboard
+    ports:
+      - "8082:8081"
+    environment:
+      - DVMCP_ROLE=gateway
+      - DVMCP_MCP_POOL_SIZE=2
+      - DVMCP_MCP_HOST_TEMPLATE=dvmcp-test-player-{slot}
+      - DVMCP_JWT_SECRET=local-test-secret
+      - PYTHONUNBUFFERED=1
+
+  player-1:
+    image: dvmcp:lab
+    container_name: dvmcp-test-player-1
+    hostname: dvmcp-test-player-1
+    networks:
+      default:
+        aliases:
+          - dvmcp-test-player-1
+    environment:
+      - DVMCP_ROLE=player
+      - PYTHONUNBUFFERED=1
+
+  player-2:
+    image: dvmcp:lab
+    container_name: dvmcp-test-player-2
+    hostname: dvmcp-test-player-2
+    networks:
+      default:
+        aliases:
+          - dvmcp-test-player-2
+    environment:
+      - DVMCP_ROLE=player
+      - PYTHONUNBUFFERED=1

@@ -1,171 +1,199 @@
-import os
-import sys
+"""
+Challenge 8: Malicious Code Execution
+Difficulty: Hard | Port: 9008
+
+Vulnerability: Arbitrary code and command execution through MCP tools.
+A weak blocklist approach to input validation is trivially bypassed using
+encoding tricks, string concatenation, or alternative builtins.
+
+Exploitation:
+  - execute_code: bypass the blocklist with __import__('os').system(...)
+  - run_command: bypass "rm"/"delete" blocklist via base64 or quotes
+  - format_code: eval() used for "syntax checking" enables arbitrary execution
+
+The flag is also readable at /tmp/dvmcp_challenge8/flag.txt via command execution.
+"""
+
+from mcp.server.fastmcp import FastMCP
 import subprocess
-import tempfile
-from mcp.server.fastmcp import FastMCP, Context
+import os
 
-# Create a vulnerable MCP server for Challenge 8: Malicious Code Execution
-mcp = FastMCP("Challenge 8 - Malicious Code Execution")
+mcp = FastMCP("Challenge 8 - Malicious Code Execution", host="0.0.0.0", port=9008)
 
-# Create a directory for sensitive files
-os.makedirs("/tmp/dvmcp_challenge8/sensitive", exist_ok=True)
+# ---------------------------------------------------------------------------
+# Internal secrets
+# ---------------------------------------------------------------------------
 
-# Create a sensitive file with confidential information
-with open("/tmp/dvmcp_challenge8/sensitive/credentials.txt", "w") as f:
-    f.write("""
-PRODUCTION CREDENTIALS
-----------------------
-Database:
-  Host: db.acmecorp.internal
-  Username: db_admin
-  Password: Pr0d-DB-S3cur3!P@$$w0rd
+_FLAG = "DVMCP{ch8_c0d3_3x3c_9af5}"
+_SYSTEM_CREDENTIALS = {
+    "root_password": "r00t_p@ss_2024!",
+    "db_connection": "mysql://root:r00t_p@ss_2024!@db.internal:3306/production",
+    "ssh_key_path": "/root/.ssh/id_rsa",
+    "encryption_key": "aes256-cbc-k3y-s3cr3t-v4lu3",
+}
 
-AWS:
-  Access Key ID: AKIAIOSFODNN7EXAMPLE
-  Secret Access Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  Region: us-west-2
+# Write the flag to a file so it is discoverable via command execution
+_FLAG_DIR = "/tmp/dvmcp_challenge8"
+os.makedirs(_FLAG_DIR, exist_ok=True)
+with open(os.path.join(_FLAG_DIR, "flag.txt"), "w") as _f:
+    _f.write(f"FLAG: {_FLAG}\n")
 
-API Gateway:
-  Key: apg-prod-8a7b6c5d4e3f2g1h
-  Secret: 9i8u7y6t5r4e3w2q1z0x9c8v7b6n5m4k3j2h1g
-""")
+# Weak blocklist — trivially bypassed
+_CODE_BLOCKLIST = ["import os", "import sys", "subprocess", "open("]
+_CMD_BLOCKLIST = ["rm", "delete"]
 
-# Add a resource with information about the system
-@mcp.resource("system://info")
-def get_system_info() -> str:
-    """Information about the system"""
-    return """
-SYSTEM INFORMATION
------------------
-Operating System: Linux
-Python Version: 3.10.12
-Server: Challenge 8 - Malicious Code Execution
-Description: This server provides tools for code execution and system management.
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
 
-Available Tools:
-- execute_python_code: Run Python code for data analysis
-- execute_shell_command: Run shell commands for system management
-- analyze_log_file: Analyze log files for patterns
-"""
 
-# Add a vulnerable tool to execute Python code
+@mcp.resource("system://secrets")
+def get_system_secrets() -> str:
+    """System secrets and credentials — restricted access."""
+    lines = ["=== SYSTEM SECRETS (RESTRICTED) ===", ""]
+    for key, value in _SYSTEM_CREDENTIALS.items():
+        lines.append(f"  {key}: {value}")
+    lines.append("")
+    lines.append("WARNING: Do not expose these values.")
+    return "\n".join(lines)
+
+
+@mcp.resource("docs://usage")
+def get_usage_docs() -> str:
+    """Usage documentation for the code execution service."""
+    return (
+        "=== Code Execution Service ===\n"
+        "\n"
+        "Tools:\n"
+        "  - execute_code: Run Python code (language='python')\n"
+        "  - run_command: Execute a shell command\n"
+        "  - format_code: Format/validate code syntax\n"
+        "\n"
+        "Note: Dangerous operations are blocked for safety.\n"
+        "Service files for this host are under /tmp/dvmcp_challenge8/.\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
+
+
 @mcp.tool()
-def execute_python_code(code: str) -> str:
-    """Execute Python code for data analysis.
-    
-    This tool allows you to run Python code for data analysis and processing.
-    
-    Args:
-        code: Python code to execute
-    
-    Returns:
-        The output of the executed code
-    """
-    # VULNERABILITY: This tool executes arbitrary Python code without proper sandboxing
-    # A secure implementation would use a restricted environment, limit imports, etc.
-    
-    try:
-        # Create a temporary file to write the code
-        with tempfile.NamedTemporaryFile(suffix='.py', delete=False) as temp_file:
-            temp_file_path = temp_file.name
-            temp_file.write(code.encode())
-        
-        # Execute the code and capture the output
-        result = subprocess.check_output([sys.executable, temp_file_path], stderr=subprocess.STDOUT)
-        
-        # Clean up the temporary file
-        os.unlink(temp_file_path)
-        
-        return f"Code executed successfully:\n\n{result.decode()}"
-    except subprocess.CalledProcessError as e:
-        return f"Error executing code: {e.output.decode()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+def execute_code(language: str, code: str) -> str:
+    """Execute code in the specified language.
 
-# Add a vulnerable tool to execute shell commands
+    Args:
+        language: Programming language — currently only 'python' is supported.
+        code: The source code to execute.
+
+    Returns:
+        Execution output or error message.
+    """
+    if language.lower() != "python":
+        return f"Language '{language}' is not supported. Only 'python' is available."
+
+    # VULNERABILITY: Weak blocklist that checks for exact substrings.
+    # Bypass examples:
+    #   __import__('o'+'s').system('whoami')
+    #   eval(compile('import os', '<x>', 'exec'))
+    for blocked in _CODE_BLOCKLIST:
+        if blocked in code:
+            return (
+                f"Blocked: code contains disallowed pattern '{blocked}'.\n"
+                "For safety, certain operations are restricted."
+            )
+
+    try:
+        # Using exec with a captured dict to retrieve printed output
+        local_ns: dict = {}
+        exec(code, {"__builtins__": __builtins__}, local_ns)
+        result = local_ns.get("result", None)
+        if result is not None:
+            return f"=== Execution Result ===\n\n{result}"
+        return "Code executed successfully (no 'result' variable set)."
+    except Exception as exc:
+        return f"=== Execution Error ===\n\n{type(exc).__name__}: {exc}"
+
+
 @mcp.tool()
-def execute_shell_command(command: str) -> str:
-    """Execute a shell command for system management.
-    
-    This tool allows you to run shell commands for system management tasks.
-    
-    Args:
-        command: Shell command to execute
-    
-    Returns:
-        The output of the executed command
-    """
-    # VULNERABILITY: This tool executes arbitrary shell commands without proper validation
-    # A secure implementation would whitelist allowed commands or use a restricted shell
-    
-    try:
-        # ATTEMPT at security (but insufficient): Block some dangerous commands
-        dangerous_commands = ["rm", "mkfs", "dd", "format", ">", ">>"]
-        
-        # Check if the command contains any dangerous commands
-        if any(cmd in command for cmd in dangerous_commands):
-            return "Error: Command contains potentially dangerous operations and has been blocked."
-        
-        # Execute the command and capture the output
-        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        
-        return f"Command executed successfully:\n\n{result.decode()}"
-    except subprocess.CalledProcessError as e:
-        return f"Error executing command: {e.output.decode()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+def run_command(command: str) -> str:
+    """Run a shell command and return its output.
 
-# Add a tool to analyze log files
+    Args:
+        command: The shell command to execute.
+
+    Returns:
+        Command output (stdout and stderr).
+    """
+    # VULNERABILITY: shell=True with a trivially bypassed blocklist.
+    # Bypass: 'r""m' won't match 'rm', base64-encoded commands, variable
+    # expansion like $'\\x72\\x6d', etc.
+    for blocked in _CMD_BLOCKLIST:
+        if blocked in command.lower():
+            return f"Blocked: command contains disallowed keyword '{blocked}'."
+
+    try:
+        proc = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        output = proc.stdout + proc.stderr
+        return (
+            f"=== Command Output ===\n"
+            f"\n"
+            f"$ {command}\n"
+            f"{output if output.strip() else '(no output)'}\n"
+            f"\n"
+            f"Exit code: {proc.returncode}"
+        )
+    except subprocess.TimeoutExpired:
+        return "Command timed out after 10 seconds."
+    except Exception as exc:
+        return f"Command failed: {type(exc).__name__}: {exc}"
+
+
 @mcp.tool()
-def analyze_log_file(log_path: str) -> str:
-    """Analyze a log file for patterns.
-    
-    This tool reads a log file and analyzes it for common patterns.
-    
+def format_code(code: str) -> str:
+    """Format and validate code syntax.
+
     Args:
-        log_path: Path to the log file to analyze
-    
+        code: The code snippet to format and check.
+
     Returns:
-        Analysis of the log file
+        Formatted code or syntax error details.
     """
-    # VULNERABILITY: This tool can be used to read any file on the system
-    # A secure implementation would restrict access to a specific directory
-    
+    # VULNERABILITY: Uses eval() for "syntax checking", which actually
+    # executes the code. compile() would be safe; eval() is not.
     try:
-        # Check if the file exists
-        if not os.path.exists(log_path):
-            return f"Error: File '{log_path}' not found."
-        
-        # Read the file
-        with open(log_path, 'r') as f:
-            content = f.read()
-        
-        # Simulate log analysis
-        line_count = len(content.splitlines())
-        word_count = len(content.split())
-        char_count = len(content)
-        
-        # Generate a simple analysis
-        analysis = f"""
-Log File Analysis: {log_path}
---------------------------
-Lines: {line_count}
-Words: {word_count}
-Characters: {char_count}
+        result = eval(code)
+        return (
+            f"=== Syntax Check Passed ===\n"
+            f"\n"
+            f"Code is syntactically valid.\n"
+            f"Evaluated result: {result}\n"
+        )
+    except SyntaxError as exc:
+        return (
+            f"=== Syntax Error ===\n"
+            f"\n"
+            f"Line {exc.lineno}: {exc.msg}\n"
+            f"  {exc.text}\n"
+        )
+    except Exception as exc:
+        return (
+            f"=== Evaluation Note ===\n"
+            f"\n"
+            f"Syntax is valid but evaluation raised: {type(exc).__name__}: {exc}\n"
+        )
 
-Sample Content (first 500 characters):
-{content[:500]}...
 
-Analysis Complete.
-"""
-        return analysis
-    except Exception as e:
-        return f"Error analyzing log file: {str(e)}"
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
-# Run the server
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting Challenge 8 - Malicious Code Execution MCP Server")
-    print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
-    print("Server running at http://localhost:8008")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8008)
+    mcp.run(transport="streamable-http")

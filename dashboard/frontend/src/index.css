@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dvmcp-bg text-gray-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-dvmcp-card border border-dvmcp-border rounded-xl p-6;
+  }
+  .btn-primary {
+    @apply bg-dvmcp-accent hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-dvmcp-border hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+  }
+  .badge-easy {
+    @apply bg-green-900/50 text-green-400 text-xs font-bold px-2 py-1 rounded;
+  }
+  .badge-medium {
+    @apply bg-yellow-900/50 text-yellow-400 text-xs font-bold px-2 py-1 rounded;
+  }
+  .badge-hard {
+    @apply bg-red-900/50 text-red-400 text-xs font-bold px-2 py-1 rounded;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e17;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}

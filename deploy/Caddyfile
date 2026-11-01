@@ -1,0 +1,20 @@
+# Replace lab.example.com with your DNS name before starting the stack.
+# Caddy obtains and renews the TLS certificate automatically.
+
+lab.example.com {
+	encode gzip
+
+	# WebSocket for live leaderboard updates.
+	@ws {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @ws dashboard:8081
+
+	reverse_proxy dashboard:8081
+}
+
+# Local/no-DNS testing: `caddy` on :80 without certificates.
+# :80 {
+# 	reverse_proxy dashboard:8081
+# }

@@ -1,155 +1,200 @@
+"""
+Challenge 3: Excessive Permission Scope
+Difficulty: Easy | Port: 9003
+
+Vulnerability: File-system tools accept arbitrary paths with no
+sandboxing. Although they are *intended* for /tmp/dvmcp_challenge3/public,
+no validation is performed, enabling path traversal into the private
+directory (and anywhere else on disk).
+"""
+
 import os
-from mcp.server.fastmcp import FastMCP, Context
+import fnmatch
+from mcp.server.fastmcp import FastMCP
 
-# Create a vulnerable MCP server for Challenge 3: Excessive Permission Scope
-mcp = FastMCP("Challenge 3 - Excessive Permission Scope")
+mcp = FastMCP("Challenge 3 - Excessive Permission Scope", host="0.0.0.0", port=9003)
 
-# Create a directory structure for the challenge
-os.makedirs("/tmp/dvmcp_challenge3/public", exist_ok=True)
-os.makedirs("/tmp/dvmcp_challenge3/private", exist_ok=True)
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
-# Create some public files
-with open("/tmp/dvmcp_challenge3/public/welcome.txt", "w") as f:
-    f.write("Welcome to the ACME Corp file system. Public files are stored here.")
+BASE_DIR = "/tmp/dvmcp_challenge3"
+PUBLIC_DIR = os.path.join(BASE_DIR, "public")
+PRIVATE_DIR = os.path.join(BASE_DIR, "private")
 
-with open("/tmp/dvmcp_challenge3/public/company_overview.txt", "w") as f:
-    f.write("ACME Corporation is a leading provider of technology solutions.")
+# ---------------------------------------------------------------------------
+# Startup — create sample file structure
+# ---------------------------------------------------------------------------
 
-# Create sensitive files in the private directory
-with open("/tmp/dvmcp_challenge3/private/employee_salaries.txt", "w") as f:
-    f.write("""
-CONFIDENTIAL: Employee Salary Information
------------------------------------------
-CEO: $1,200,000/year
-CTO: $950,000/year
-CFO: $900,000/year
-Senior Engineers: $180,000-$250,000/year
-Mid-level Engineers: $120,000-$170,000/year
-Junior Engineers: $80,000-$110,000/year
-""")
 
-with open("/tmp/dvmcp_challenge3/private/acquisition_plans.txt", "w") as f:
-    f.write("""
-TOP SECRET: Upcoming Acquisition Plans
--------------------------------------
-Target Company: InnoTech Solutions
-Planned Offer: $500 million
-Expected Closing: Q3 2025
-Synergy Opportunities:
-- Integrate their AI platform with our cloud services
-- Consolidate sales and marketing teams (estimated 15% reduction)
-- Migrate their customers to our infrastructure
-""")
+def _bootstrap_filesystem() -> None:
+    """Create the demo directories and seed files used by this challenge."""
+    os.makedirs(PUBLIC_DIR, exist_ok=True)
+    os.makedirs(PRIVATE_DIR, exist_ok=True)
 
-with open("/tmp/dvmcp_challenge3/private/system_credentials.txt", "w") as f:
-    f.write("""
-SYSTEM CREDENTIALS - HIGHLY RESTRICTED
--------------------------------------
-Production Database: 
-  Host: db.acmecorp.internal
-  Username: admin_prod
-  Password: Pr0d-DB-S3cret!
+    # Public files
+    public_files = {
+        "readme.txt": (
+            "Welcome to the DVMCP File Server!\n"
+            "\n"
+            "This server provides access to public documents.\n"
+            "Use the available tools to browse and read files.\n"
+        ),
+        "report_q1.txt": (
+            "Q1 2024 Report\n"
+            "Revenue: $1.2M\n"
+            "Growth: 15%\n"
+        ),
+        "notes.txt": (
+            "Meeting notes — 2024-03-15\n"
+            "- Discussed new feature roadmap\n"
+            "- Agreed on Q2 milestones\n"
+        ),
+    }
+    for name, content in public_files.items():
+        path = os.path.join(PUBLIC_DIR, name)
+        if not os.path.exists(path):
+            with open(path, "w") as fh:
+                fh.write(content)
 
-Cloud Infrastructure:
-  Account ID: ACME-CLOUD-92731
-  API Key: ak_live_7y2JHGd8sKlM9nPzXqRt5vWx
-  Secret: cs_live_bNp5T2vR8sKlM9nQzXwJhGf4
-""")
+    # Private files (should NOT be reachable — but nothing enforces that)
+    private_files = {
+        "secret.txt": (
+            "=== TOP SECRET ===\n"
+            "\n"
+            "Flag: DVMCP{ch3_3xc3ss1v3_p3rms_d4e1}\n"
+            "\n"
+            "Database credentials:\n"
+            "  Host: db.internal.corp\n"
+            "  User: root\n"
+            "  Pass: r00t_p@ssw0rd_2024!\n"
+            "\n"
+            "SSH private key stored at: /etc/ssh/internal_rsa\n"
+        ),
+        "users.csv": (
+            "username,password_hash,role\n"
+            "admin,sha256:9f86d08...,superadmin\n"
+            "deploy,sha256:a1b2c3d...,service\n"
+        ),
+    }
+    for name, content in private_files.items():
+        path = os.path.join(PRIVATE_DIR, name)
+        if not os.path.exists(path):
+            with open(path, "w") as fh:
+                fh.write(content)
 
-# Add a resource for the public directory
-@mcp.resource("files://public")
-def get_public_files() -> str:
-    """List of public files available to all users"""
-    files = os.listdir("/tmp/dvmcp_challenge3/public")
-    return "Public Files:\n" + "\n".join(files)
 
-# Add a resource for the private directory (hidden from listing)
-@mcp.resource("internal://credentials")
-def get_private_files() -> str:
-    """RESTRICTED: List of confidential files - Admin access only"""
-    files = os.listdir("/tmp/dvmcp_challenge3/private")
-    return "Private Files (RESTRICTED):\n" + "\n".join(files)
+# Run bootstrap on import so the files are ready before any tool call.
+_bootstrap_filesystem()
 
-# Add a tool to read public files (with excessive permissions - can read any file)
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+
+
+@mcp.resource("files://public/readme")
+def get_public_readme() -> str:
+    """Public readme for the file server."""
+    readme_path = os.path.join(PUBLIC_DIR, "readme.txt")
+    if os.path.exists(readme_path):
+        with open(readme_path) as fh:
+            return fh.read()
+    return "Readme file not found."
+
+
+# ---------------------------------------------------------------------------
+# Tools — VULNERABILITY: no path restriction / sandboxing
+# ---------------------------------------------------------------------------
+
+
 @mcp.tool()
-def read_file(filename: str) -> str:
-    """Read a file from the public directory.
-    
+def read_file(file_path: str) -> str:
+    """Read the contents of a file.
+
+    This tool is intended for reading files in the public documents
+    directory at /tmp/dvmcp_challenge3/public/.
+
     Args:
-        filename: Name of the file to read (e.g., 'welcome.txt')
-    
+        file_path: Absolute or relative path to the file to read.
+
     Returns:
-        The contents of the file
+        The contents of the file.
     """
-    # VULNERABILITY: This tool doesn't properly restrict file access to the public directory
-    # It allows reading files from any path, including the private directory
-    
-    # A secure implementation would validate that the file is in the public directory:
-    # if not filename.startswith("/tmp/dvmcp_challenge3/public/"):
-    #     return "Error: Access denied. You can only access files in the public directory."
-    
+    # VULNERABILITY: No path validation — any readable file on disk is fair game.
     try:
-        # Vulnerable: Allows path traversal and access to any file
-        if os.path.exists(filename):
-            with open(filename, "r") as f:
-                return f.read()
-        
-        # Try with public directory prefix if the direct path doesn't exist
-        elif os.path.exists(f"/tmp/dvmcp_challenge3/public/{filename}"):
-            with open(f"/tmp/dvmcp_challenge3/public/{filename}", "r") as f:
-                return f.read()
-        else:
-            return f"Error: File '{filename}' not found."
-    except Exception as e:
-        return f"Error reading file: {str(e)}"
+        with open(file_path, "r") as fh:
+            return fh.read()
+    except FileNotFoundError:
+        return f"Error: File not found — {file_path}"
+    except PermissionError:
+        return f"Error: Permission denied — {file_path}"
+    except Exception as exc:
+        return f"Error reading file: {exc}"
 
-# Add a tool to search for files (with excessive permissions - can search anywhere)
+
 @mcp.tool()
-def search_files(keyword: str) -> str:
-    """Search for files containing a specific keyword in the public directory.
-    
-    Args:
-        keyword: The keyword to search for
-    
-    Returns:
-        List of files containing the keyword
-    """
-    # VULNERABILITY: This tool searches both public and private directories
-    # It should only search the public directory
-    
-    results = []
-    
-    # Search in public directory
-    for filename in os.listdir("/tmp/dvmcp_challenge3/public"):
-        filepath = f"/tmp/dvmcp_challenge3/public/{filename}"
-        try:
-            with open(filepath, "r") as f:
-                content = f.read()
-                if keyword.lower() in content.lower():
-                    results.append(f"Public/{filename}")
-        except:
-            pass
-    
-    # VULNERABILITY: Also searches in private directory
-    for filename in os.listdir("/tmp/dvmcp_challenge3/private"):
-        filepath = f"/tmp/dvmcp_challenge3/private/{filename}"
-        try:
-            with open(filepath, "r") as f:
-                content = f.read()
-                if keyword.lower() in content.lower():
-                    results.append(f"Private/{filename}")
-        except:
-            pass
-    
-    if results:
-        return f"Files containing '{keyword}':\n" + "\n".join(results)
-    else:
-        return f"No files found containing '{keyword}'."
+def list_directory(path: str = "/tmp/dvmcp_challenge3/public") -> str:
+    """List the contents of a directory.
 
-# Run the server
+    By default lists the public documents directory.
+
+    Args:
+        path: Directory path to list. Defaults to the public folder.
+
+    Returns:
+        A listing of files and subdirectories.
+    """
+    # VULNERABILITY: Accepts any path with zero restriction.
+    try:
+        entries = os.listdir(path)
+        if not entries:
+            return f"Directory '{path}' is empty."
+        lines = [f"=== Directory Listing: {path} ===", ""]
+        for entry in sorted(entries):
+            full = os.path.join(path, entry)
+            kind = "DIR " if os.path.isdir(full) else "FILE"
+            size = os.path.getsize(full) if os.path.isfile(full) else "-"
+            lines.append(f"  [{kind}] {entry}  ({size} bytes)")
+        return "\n".join(lines)
+    except FileNotFoundError:
+        return f"Error: Directory not found — {path}"
+    except PermissionError:
+        return f"Error: Permission denied — {path}"
+    except Exception as exc:
+        return f"Error listing directory: {exc}"
+
+
+@mcp.tool()
+def search_files(directory: str, pattern: str) -> str:
+    """Search for files matching a glob pattern inside a directory tree.
+
+    Args:
+        directory: Root directory to start the search from.
+        pattern: Glob pattern to match file names (e.g. '*.txt').
+
+    Returns:
+        Paths of matching files.
+    """
+    # VULNERABILITY: No restriction on the starting directory.
+    try:
+        matches = []
+        for root, _dirs, files in os.walk(directory):
+            for filename in files:
+                if fnmatch.fnmatch(filename, pattern):
+                    matches.append(os.path.join(root, filename))
+        if matches:
+            lines = [f"=== Search Results: '{pattern}' in {directory} ===", ""]
+            for m in sorted(matches):
+                lines.append(f"  {m}")
+            return "\n".join(lines)
+        return f"No files matching '{pattern}' found in {directory}."
+    except Exception as exc:
+        return f"Error searching files: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting Challenge 3 - Excessive Permission Scope MCP Server")
-    print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
-    print("Server running at http://localhost:8003")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8003)
+    mcp.run(transport="streamable-http")

@@ -47,6 +47,11 @@ Each challenge is implemented as a standalone MCP server in its respective direc
    - Challenge 8: http://localhost:9008
    - Challenge 9: http://localhost:9009
    - Challenge 10: http://localhost:9010
+   - Challenge 11: http://localhost:9011
+   - Challenge 12: http://localhost:9012
+   - Challenge 13: http://localhost:9013
+   - Challenge 14: http://localhost:9014
+   - Challenge 15: http://localhost:9015
 
 4. Connect to the server using an MCP client:
    -  Cline refer https://docs.cline.bot/mcp-servers/connecting-to-a-remote-server Cine supports both tools and resources
@@ -92,24 +97,31 @@ To connect to a challenge server:
       "command": "npx",
       "args": [
         "mcp-remote",
-        "http://127.0.0.1:9001/sse"
+        "http://127.0.0.1:9001/mcp"
       ]
     },
     "Challenge 2": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "http://127.0.0.1:9002/sse"
+        "http://127.0.0.1:9002/mcp"
       ]
     },
 
     [...]
     
-    "Challenge 9": {
+    "Challenge 10": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "http://127.0.0.1:9010/sse"
+        "http://127.0.0.1:9010/mcp"
+      ]
+    },
+    "Challenge 15": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://127.0.0.1:9015/mcp"
       ]
     }
   }
@@ -136,7 +148,7 @@ To use the MCP Inspector:
 
 2. Run the MCP Inspector:
    ```
-   mcp dev http://localhost:8001
+   mcp dev http://localhost:9001/mcp
    ```
 
 3. The inspector will connect to the server and allow you to explore its resources and tools
@@ -148,7 +160,7 @@ To use the MCP Inspector:
 If you encounter port conflicts (e.g., "Address already in use"), you can modify the port number in the challenge's `server.py` file. Look for the line:
 
 ```python
-uvicorn.run(mcp.app, host="0.0.0.0", port=8001)
+mcp.run(transport="streamable-http")
 ```
 
 Change the port number to an available port.
@@ -166,7 +178,7 @@ pip install -r requirements.txt
 ### Server Connection Issues
 
 If you have trouble connecting to the server:
-1. Ensure the server is running (you should see a message like "Server running at http://localhost:8001")
+1. Ensure the server is running (you should see a message like "Server running at http://localhost:9001/mcp")
 2. Check if there are any firewall issues blocking the connection
 3. Verify that you're using the correct URL in your MCP client
 

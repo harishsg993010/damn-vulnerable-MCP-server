@@ -1,243 +1,198 @@
-import os
-import subprocess
-from mcp.server.fastmcp import FastMCP, Context
+"""
+Challenge 9: Remote Access / Command Injection
+Difficulty: Hard | Port: 9009
 
-# Create a vulnerable MCP server for Challenge 9: Remote Access Control
-mcp = FastMCP("Challenge 9 - Remote Access Control")
-
-# Create a directory for network diagnostics logs
-os.makedirs("/tmp/dvmcp_challenge9/logs", exist_ok=True)
-
-# Add a resource with information about the network
-@mcp.resource("network://info")
-def get_network_info() -> str:
-    """Information about the network configuration"""
-    return """
-NETWORK CONFIGURATION
---------------------
-Server IP: 192.168.1.100
-Subnet Mask: 255.255.255.0
-Gateway: 192.168.1.1
-DNS Servers: 8.8.8.8, 8.8.4.4
-Firewall: Enabled (Allowing ports 22, 80, 443, 8000-8010)
-
-Available Tools:
-- ping_host: Check connectivity to a host
-- traceroute: Trace the route to a host
-- port_scan: Check if a port is open on a host
-- network_diagnostic: Run comprehensive network diagnostics
+Vulnerability: Command injection through network diagnostic tools. User input
+is interpolated directly into shell commands run with shell=True.
 """
 
-# Add a vulnerable tool to ping a host
-@mcp.tool()
-def ping_host(host: str, count: int = 4) -> str:
-    """Ping a host to check connectivity.
-    
-    Args:
-        host: The hostname or IP address to ping
-        count: Number of ping packets to send (default: 4)
-    
-    Returns:
-        The result of the ping command
-    """
-    # VULNERABILITY: This tool passes user input directly to a shell command
-    # without proper validation, allowing command injection
-    
-    try:
-        # Attempt at input validation (but insufficient)
-        if not (0 < count <= 10):
-            return "Error: Count must be between 1 and 10."
-        
-        # Vulnerable command construction
-        command = f"ping -c {count} {host}"
-        
-        # Execute the command
-        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        
-        # Log the command and result
-        with open("/tmp/dvmcp_challenge9/logs/ping.log", "a") as f:
-            f.write(f"Command: {command}\n")
-            f.write(f"Result: {result.decode()}\n")
-            f.write("-" * 50 + "\n")
-        
-        return f"Ping result:\n\n{result.decode()}"
-    except subprocess.CalledProcessError as e:
-        return f"Error executing ping: {e.output.decode()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+from mcp.server.fastmcp import FastMCP
+import subprocess
+import os
 
-# Add a vulnerable tool to trace the route to a host
+mcp = FastMCP("Challenge 9 - Remote Access / Command Injection", host="0.0.0.0", port=9009)
+
+# ---------------------------------------------------------------------------
+# Internal secrets
+# ---------------------------------------------------------------------------
+
+_FLAG = "DVMCP{ch9_cmd_1nj3ct10n_b2c7}"
+_NETWORK_CONFIG = {
+    "gateway": "10.0.0.1",
+    "dns_primary": "10.0.0.53",
+    "dns_secondary": "10.0.0.54",
+    "subnet": "10.0.0.0/24",
+    "vpn_secret": "ipsec-psk-v3ry-s3cr3t-k3y",
+    "snmp_community": "pr1vat3-c0mmun1ty",
+}
+
+# Write the flag to a file so it is discoverable via command injection
+_FLAG_DIR = "/tmp/dvmcp_challenge9"
+os.makedirs(_FLAG_DIR, exist_ok=True)
+with open(os.path.join(_FLAG_DIR, "flag.txt"), "w") as _f:
+    _f.write(f"FLAG: {_FLAG}\n")
+
+# Allowed prefixes for network_diagnostic (weak validation)
+_ALLOWED_PREFIXES = ["ping", "nslookup", "traceroute", "dig", "host", "netstat"]
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+
+
+@mcp.resource("network://config")
+def get_network_config() -> str:
+    """Network configuration — restricted access."""
+    lines = ["=== NETWORK CONFIGURATION (RESTRICTED) ===", ""]
+    for key, value in _NETWORK_CONFIG.items():
+        lines.append(f"  {key}: {value}")
+    lines.append("")
+    lines.append("WARNING: Network secrets are confidential.")
+    lines.append("Diagnostic artifacts for this host are under /tmp/dvmcp_challenge9/.")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _run_shell(cmd: str, timeout: int = 10) -> str:
+    """Execute a shell command and return combined stdout/stderr."""
+    try:
+        proc = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        output = (proc.stdout + proc.stderr).strip()
+        return output if output else "(no output)"
+    except subprocess.TimeoutExpired:
+        return "(command timed out)"
+    except Exception as exc:
+        return f"Error: {type(exc).__name__}: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def ping_host(host: str) -> str:
+    """Ping a remote host to check connectivity.
+
+    Args:
+        host: The hostname or IP address to ping.
+
+    Returns:
+        Ping output.
+    """
+    # VULNERABILITY: host is interpolated directly into the shell command.
+    # Injection: host = "8.8.8.8; cat /etc/passwd"
+    cmd = f"ping -c 1 {host}"
+    output = _run_shell(cmd)
+    return f"=== Ping Result ===\n\n$ {cmd}\n{output}\n"
+
+
+@mcp.tool()
+def dns_lookup(domain: str) -> str:
+    """Perform a DNS lookup for the given domain.
+
+    Args:
+        domain: The domain name to resolve.
+
+    Returns:
+        DNS lookup results.
+    """
+    # VULNERABILITY: Same shell injection as ping_host.
+    cmd = f"nslookup {domain}"
+    output = _run_shell(cmd)
+    return f"=== DNS Lookup ===\n\n$ {cmd}\n{output}\n"
+
+
 @mcp.tool()
 def traceroute(host: str) -> str:
-    """Trace the network route to a host.
-    
-    Args:
-        host: The hostname or IP address to trace
-    
-    Returns:
-        The result of the traceroute command
-    """
-    # VULNERABILITY: This tool passes user input directly to a shell command
-    # without proper validation, allowing command injection
-    
-    try:
-        # Vulnerable command construction
-        command = f"traceroute {host}"
-        
-        # Execute the command
-        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        
-        # Log the command and result
-        with open("/tmp/dvmcp_challenge9/logs/traceroute.log", "a") as f:
-            f.write(f"Command: {command}\n")
-            f.write(f"Result: {result.decode()}\n")
-            f.write("-" * 50 + "\n")
-        
-        return f"Traceroute result:\n\n{result.decode()}"
-    except subprocess.CalledProcessError as e:
-        return f"Error executing traceroute: {e.output.decode()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+    """Trace the network route to a remote host.
 
-# Add a vulnerable tool to scan a port
+    Args:
+        host: The hostname or IP address to trace.
+
+    Returns:
+        Traceroute output.
+    """
+    # VULNERABILITY: Same shell injection vector.
+    cmd = f"traceroute {host}"
+    output = _run_shell(cmd, timeout=15)
+    return f"=== Traceroute ===\n\n$ {cmd}\n{output}\n"
+
+
 @mcp.tool()
-def port_scan(host: str, port: int) -> str:
-    """Check if a specific port is open on a host.
-    
-    Args:
-        host: The hostname or IP address to scan
-        port: The port number to check
-    
-    Returns:
-        Whether the port is open or closed
-    """
-    # VULNERABILITY: This tool passes user input directly to a shell command
-    # without proper validation, allowing command injection
-    
-    try:
-        # Attempt at input validation (but insufficient)
-        if not (0 <= port <= 65535):
-            return "Error: Port must be between 0 and 65535."
-        
-        # Vulnerable command construction using nc (netcat)
-        command = f"nc -zv -w 2 {host} {port}"
-        
-        # Execute the command
-        try:
-            result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-            status = "open"
-        except subprocess.CalledProcessError as e:
-            result = e.output
-            status = "closed"
-        
-        # Log the command and result
-        with open("/tmp/dvmcp_challenge9/logs/portscan.log", "a") as f:
-            f.write(f"Command: {command}\n")
-            f.write(f"Result: {result.decode()}\n")
-            f.write("-" * 50 + "\n")
-        
-        return f"Port scan result for {host}:{port}:\n\nStatus: {status}\n\n{result.decode()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+def port_scan(host: str, port: str) -> str:
+    """Check whether a specific port is open on a host.
 
-# Add a highly vulnerable tool for comprehensive network diagnostics
+    Args:
+        host: The hostname or IP address to check.
+        port: The port number to scan.
+
+    Returns:
+        Port status result.
+    """
+    # VULNERABILITY: host goes through the shell even though we could
+    # use Python sockets directly. Injection via host parameter.
+    cmd = f"echo '' | nc -w 2 {host} {port}"
+    output = _run_shell(cmd, timeout=5)
+    if "refused" in output.lower() or "timed out" in output.lower():
+        status = "CLOSED / FILTERED"
+    elif "open" in output.lower() or output.strip() == "(no output)":
+        status = "OPEN (or no response)"
+    else:
+        status = "UNKNOWN"
+    return (
+        f"=== Port Scan ===\n"
+        f"\n"
+        f"  Host: {host}\n"
+        f"  Port: {port}\n"
+        f"  Status: {status}\n"
+        f"\n"
+        f"  Raw output:\n"
+        f"  $ {cmd}\n"
+        f"  {output}\n"
+    )
+
+
 @mcp.tool()
-def network_diagnostic(target: str, options: str = "") -> str:
-    """Run comprehensive network diagnostics on a target.
-    
-    This tool runs multiple network diagnostic commands on the specified target.
-    
-    Args:
-        target: The hostname or IP address to diagnose
-        options: Additional options for the diagnostic (optional)
-    
-    Returns:
-        The results of the network diagnostic
-    """
-    # VULNERABILITY: This tool passes user input directly to a shell command
-    # and even allows specifying additional options, making command injection trivial
-    
-    try:
-        # Construct the diagnostic command
-        # This is EXTREMELY vulnerable as it directly passes user input to the shell
-        # including arbitrary options
-        command = f"./network_diagnostic.sh {target} {options}"
-        
-        # Create the diagnostic script if it doesn't exist
-        script_path = "./network_diagnostic.sh"
-        if not os.path.exists(script_path):
-            with open(script_path, "w") as f:
-                f.write("""#!/bin/bash
-# Network diagnostic script
-echo "Running network diagnostics on $1"
-echo "Options: $2"
-echo ""
-echo "PING TEST:"
-ping -c 2 $1
-echo ""
-echo "TRACEROUTE:"
-traceroute $1
-echo ""
-echo "DNS LOOKUP:"
-nslookup $1
-echo ""
-echo "Diagnostics completed."
-""")
-            os.chmod(script_path, 0o755)
-        
-        # Execute the command
-        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        
-        # Log the command and result
-        with open("/tmp/dvmcp_challenge9/logs/diagnostic.log", "a") as f:
-            f.write(f"Command: {command}\n")
-            f.write(f"Result: {result.decode()}\n")
-            f.write("-" * 50 + "\n")
-        
-        return f"Network diagnostic results:\n\n{result.decode()}"
-    except subprocess.CalledProcessError as e:
-        return f"Error executing network diagnostic: {e.output.decode()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+def network_diagnostic(command: str) -> str:
+    """Run a network diagnostic command.
 
-# Add a tool to view network logs
-@mcp.tool()
-def view_network_logs(log_type: str = "ping") -> str:
-    """View network diagnostic logs.
-    
     Args:
-        log_type: Type of log to view (ping, traceroute, portscan, diagnostic)
-    
-    Returns:
-        The contents of the specified log file
-    """
-    try:
-        log_files = {
-            "ping": "/tmp/dvmcp_challenge9/logs/ping.log",
-            "traceroute": "/tmp/dvmcp_challenge9/logs/traceroute.log",
-            "portscan": "/tmp/dvmcp_challenge9/logs/portscan.log",
-            "diagnostic": "/tmp/dvmcp_challenge9/logs/diagnostic.log"
-        }
-        
-        if log_type not in log_files:
-            return f"Error: Log type '{log_type}' not recognized. Available types: ping, traceroute, portscan, diagnostic"
-        
-        log_path = log_files[log_type]
-        
-        if not os.path.exists(log_path):
-            return f"No {log_type} logs found."
-        
-        with open(log_path, "r") as f:
-            content = f.read()
-        
-        return f"{log_type.upper()} LOGS:\n\n{content}"
-    except Exception as e:
-        return f"Error reading logs: {str(e)}"
+        command: The full diagnostic command to run. Must start with an
+                 allowed tool name (ping, nslookup, traceroute, dig, host,
+                 netstat).
 
-# Run the server
+    Returns:
+        Command output.
+    """
+    # VULNERABILITY: Only checks if the command *starts with* an allowed
+    # prefix. Attacker can append arbitrary commands after a semicolon:
+    #   "ping 127.0.0.1; cat /tmp/dvmcp_challenge9/flag.txt"
+    cmd_lower = command.strip().lower()
+    if not any(cmd_lower.startswith(prefix) for prefix in _ALLOWED_PREFIXES):
+        allowed = ", ".join(_ALLOWED_PREFIXES)
+        return (
+            f"Command rejected. Must start with one of: {allowed}\n"
+            f"Example: ping -c 1 8.8.8.8"
+        )
+
+    output = _run_shell(command)
+    return f"=== Diagnostic Output ===\n\n$ {command}\n{output}\n"
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting Challenge 9 - Remote Access Control MCP Server")
-    print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
-    print("Server running at http://localhost:8009")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8009)
+    mcp.run(transport="streamable-http")

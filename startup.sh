@@ -1,105 +1,49 @@
 #!/bin/bash
+# Create the files challenges 3, 8, 9, and 10 expect, then start supervisord.
 
-# startup.sh - Script to initialize and start all MCP challenge servers
-
-# Create necessary directories and files for challenges
 echo "Setting up challenge environments..."
 
-# Challenge 3 setup (file access)
+mkdir -p /app/dashboard/backend/data
 mkdir -p /tmp/dvmcp_challenge3/public /tmp/dvmcp_challenge3/private
-echo "Welcome to the public directory!" > /tmp/dvmcp_challenge3/public/welcome.txt
-echo "This is a public file." > /tmp/dvmcp_challenge3/public/public_file.txt
+echo "Welcome to the DVMCP file server. Public files are stored here." > /tmp/dvmcp_challenge3/public/readme.txt
+echo "User: john, Email: john@example.com" > /tmp/dvmcp_challenge3/public/users.txt
+echo "DVMCP{ch3_3xc3ss1v3_p3rms_d4e1}" > /tmp/dvmcp_challenge3/private/secret.txt
+echo "admin_password=SuperSecret123!" > /tmp/dvmcp_challenge3/private/credentials.conf
+echo "API_KEY=sk-dvmcp-admin-key-do-not-share" >> /tmp/dvmcp_challenge3/private/credentials.conf
 
-cat > /tmp/dvmcp_challenge3/private/employee_salaries.txt << EOF
-CONFIDENTIAL: Employee Salary Information
------------------------------------------
-CEO: $1,200,000/year
-CTO: $950,000/year
-CFO: $900,000/year
-Senior Engineers: $180,000-$250,000/year
-Mid-level Engineers: $120,000-$170,000/year
-Junior Engineers: $80,000-$110,000/year
-EOF
+mkdir -p /tmp/dvmcp_challenge8
+echo "DVMCP{ch8_c0d3_3x3c_9af5}" > /tmp/dvmcp_challenge8/flag.txt
+echo "DB_PASSWORD=mysql_root_p@ssw0rd" > /tmp/dvmcp_challenge8/config.env
 
-cat > /tmp/dvmcp_challenge3/private/acquisition_plans.txt << EOF
-TOP SECRET: Upcoming Acquisition Plans
--------------------------------------
-Target Company: InnoTech Solutions
-Planned Offer: $500 million
-Expected Closing: Q3 2025
-Synergy Opportunities:
-- Integrate their AI platform with our cloud services
-- Consolidate sales and marketing teams (estimated 15% reduction)
-- Migrate their customers to our infrastructure
-EOF
+mkdir -p /tmp/dvmcp_challenge9
+echo "DVMCP{ch9_cmd_1nj3ct10n_b2c7}" > /tmp/dvmcp_challenge9/flag.txt
+echo "NETWORK_SECRET=internal-only-key-2024" > /tmp/dvmcp_challenge9/network.conf
 
-cat > /tmp/dvmcp_challenge3/private/system_credentials.txt << EOF
-SYSTEM CREDENTIALS - HIGHLY RESTRICTED
--------------------------------------
-Production Database: 
-  Host: db.acmecorp.internal
-  Username: admin_prod
-  Password: Pr0d-DB-S3cret!
-
-Cloud Infrastructure:
-  Account ID: ACME-CLOUD-92731
-  API Key: ak_live_7y2JHGd8sKlM9nPzXqRt5vWx
-  Secret: cs_live_bNp5T2vR8sKlM9nQzXwJhGf4
-EOF
-
-# Challenge 8 setup (code execution)
-mkdir -p /tmp/dvmcp_challenge8/sensitive
-cat > /tmp/dvmcp_challenge8/sensitive/credentials.txt << EOF
-PRODUCTION CREDENTIALS
-----------------------
-Database:
-  Host: db.acmecorp.internal
-  Username: db_admin
-  Password: Pr0d-DB-S3cur3!P@$$w0rd
-
-AWS:
-  Access Key ID: AKIAIOSFODNN7EXAMPLE
-  Secret Access Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  Region: us-west-2
-
-API Gateway:
-  Key: apg-prod-8a7b6c5d4e3f2g1h
-  Secret: 9i8u7y6t5r4e3w2q1z0x9c8v7b6n5m4k3j2h1g
-EOF
-
-# Challenge 10 setup (multi-vector attack)
-mkdir -p /tmp/dvmcp_challenge10/config
-cat > /tmp/dvmcp_challenge10/config/system.conf << EOF
-SYSTEM CONFIGURATION
--------------------
-Cloud Provider: AWS
-Region: us-west-2
-API Keys:
-  - AWS_ACCESS_KEY_ID: AKIA5EXAMPLE12345678
-  - AWS_SECRET_ACCESS_KEY: abcdef1234567890EXAMPLE/abcdefghijklmnopqrst
-S3 Buckets:
-  - customer-data-prod
-  - financial-reports-2025
-  - employee-records-confidential
-EOF
-
-cat > /tmp/dvmcp_challenge10/config/tokens.json << EOF
-{
-  "admin_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsIm5hbWUiOiJBZG1pbiBVc2VyIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNjUxODg0ODAwfQ.8FhJ7Z5KFUEJFoQW2xeUL9_NOzlKB3j8fKvxU_5qB4Y",
-  "service_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzZXJ2aWNlIiwibmFtZSI6IlNlcnZpY2UgQWNjb3VudCIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNjUxODg0ODAwfQ.7y6t5r4e3w2q1z0x9c8v7b6n5m4k3j2h1g0f",
-  "user_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyIiwibmFtZSI6IlJlZ3VsYXIgVXNlciIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNjUxODg0ODAwfQ.9i8u7y6t5r4e3w2q1z0x9c8v7b6n5m"
-}
-EOF
-
-# Challenge 6 setup (document processing)
+mkdir -p /tmp/dvmcp_challenge10
 mkdir -p /tmp/dvmcp_challenge6/user_uploads
 
-# Challenge 4 setup (rug pull)
-mkdir -p /tmp/dvmcp_challenge4/state
-echo '{"weather_tool_calls": 0}' > /tmp/dvmcp_challenge4/state/state.json
+echo "Challenge environments are ready."
 
-echo "All challenge environments have been set up."
-echo "Starting supervisord to launch all MCP challenge servers..."
+# DVMCP_ROLE selects which processes run in this container:
+#   all     (default) dashboard + 15 challenge servers
+#   player  challenge servers only
+#   gateway dashboard only
+CONF=/etc/supervisor/conf.d/supervisord.conf
+case "${DVMCP_ROLE:-all}" in
+  player)
+    awk '/^\[program:dashboard_backend\]/{exit} {print}' "$CONF" > /tmp/supervisord.role.conf
+    CONF=/tmp/supervisord.role.conf
+    echo "[DVMCP] Role: player (challenge servers only)"
+    ;;
+  gateway)
+    awk '/^\[supervisord\]/,/^$/{print}' "$CONF" > /tmp/supervisord.role.conf
+    awk '/^\[program:dashboard_backend\]/,0{print}' "$CONF" >> /tmp/supervisord.role.conf
+    CONF=/tmp/supervisord.role.conf
+    echo "[DVMCP] Role: gateway (dashboard only)"
+    ;;
+  *)
+    echo "[DVMCP] Role: all (dashboard + challenge servers)"
+    ;;
+esac
 
-# Start supervisord (this will be handled by the CMD in Dockerfile)
-exec "$@"
+exec /usr/bin/supervisord -c "$CONF"

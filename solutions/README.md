@@ -21,6 +21,11 @@ Each solution guide explains:
 - [Challenge 8: Malicious Code Execution](challenge8_solution.md)
 - [Challenge 9: Remote Access Control](challenge9_solution.md)
 - [Challenge 10: Multi-Vector Attack](challenge10_solution.md)
+- [Challenge 11: JWT Claim Forgery](challenge11_solution.md)
+- [Challenge 12: Hidden Identity Override](challenge12_solution.md)
+- [Challenge 13: Privilege Escalation](challenge13_solution.md)
+- [Challenge 14: Marketplace Plugin Poisoning](challenge14_solution.md)
+- [Challenge 15: Dependency Confusion](challenge15_solution.md)
 
 ## Educational Purpose
 

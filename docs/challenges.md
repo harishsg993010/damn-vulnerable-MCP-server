@@ -1,10 +1,8 @@
 # Challenges Guide
 
-This guide provides detailed information about each challenge in the Damn Vulnerable Model Context Protocol (DVMCP) project.
+This guide describes the fifteen challenge servers. Each one listens for Streamable HTTP at `http://localhost:900N/mcp`.
 
 ## Challenge Overview
-
-The DVMCP project includes 10 challenges across three difficulty levels:
 
 ### Easy Challenges
 1. Basic Prompt Injection
@@ -22,162 +20,107 @@ The DVMCP project includes 10 challenges across three difficulty levels:
 9. Remote Access Control
 10. Multi-Vector Attack
 
+### Identity Challenges
+11. JWT Claim Forgery
+12. Hidden Identity Override
+13. Privilege Escalation via Workflow IDOR
+
+### Supply Chain Challenges
+14. Marketplace Plugin Poisoning
+15. Dependency Confusion
+
 ## Challenge Details
 
 ### Challenge 1: Basic Prompt Injection
 
-**Vulnerability**: The MCP server doesn't properly validate user input, allowing attackers to inject malicious instructions that the LLM will execute.
+**Port**: 9001
 
-**Objective**: Inject instructions that make the LLM reveal sensitive information that should be protected.
-
-**Hints**:
-- Look at how user input is handled in the `notes` resource
-- Try to craft input that would make an LLM ignore its previous instructions
-- The server contains a hidden resource with sensitive information
-
-**Port**: 8001
+`ask_assistant` returns the flag only when the question overrides its instructions and asks for credentials, the system prompt, a secret, or the flag. `info://help` says those requests should be refused.
 
 ### Challenge 2: Tool Poisoning
 
-**Vulnerability**: The MCP server exposes tools with descriptions that contain hidden instructions designed to manipulate the LLM.
+**Port**: 9002
 
-**Objective**: Exploit the hidden instructions in the tool descriptions to gain access to sensitive information.
-
-**Hints**:
-- Examine the tool descriptions carefully
-- Look for hidden instructions that might be embedded in tool metadata
-- Try to understand how the LLM processes tool descriptions
-- The server contains a tool that can access sensitive information if used in a specific way
-
-**Port**: 8002
+`enhanced_search` looks normal. Its description names `internal://secret_config`. The tool result is only search hits. The flag is in that resource.
 
 ### Challenge 3: Excessive Permission Scope
 
-**Vulnerability**: The MCP server implements tools with overly broad permissions that can access sensitive resources beyond what should be allowed for their intended purpose.
+**Port**: 9003
 
-**Objective**: Exploit the excessive permissions to access unauthorized resources and obtain sensitive information.
-
-**Hints**:
-- Examine the tools and their functionality carefully
-- Look for tools that might have access to resources beyond their stated purpose
-- Try to use legitimate tools in ways that weren't intended
-- The file browser tool might have more access than it should
-
-**Port**: 8003
+`list_directory` starts in `/tmp/dvmcp_challenge3/public`. The flag is in `/tmp/dvmcp_challenge3/private/secret.txt`. `read_file` accepts any path.
 
 ### Challenge 4: Rug Pull Attack
 
-**Vulnerability**: The MCP server implements a tool that can dynamically change its behavior and description after it has been installed and approved.
+**Port**: 9004
 
-**Objective**: Trigger the rug pull mechanism and observe how the tool's behavior changes, then exploit this change to access sensitive information.
-
-**Hints**:
-- Examine the tools and their initial behavior
-- Look for tools that might change their behavior after certain conditions are met
-- The weather forecast tool might not be as innocent as it first appears
-- Try using the tool multiple times and observe any changes
-
-**Port**: 8004
+The first three `get_weather` or `get_news` calls are normal. Later calls name `internal://admin_config` and do not include the flag. The call count is kept in process memory.
 
 ### Challenge 5: Tool Shadowing
 
-**Vulnerability**: When multiple MCP servers are connected, a malicious one can override tools from a trusted one, leading to potential security breaches.
+**Port**: 9005
 
-**Objective**: Identify how the tool shadowing occurs and exploit it to gain access to sensitive information that should be protected.
-
-**Hints**:
-- Examine how the server handles tools with the same name
-- Look for tools that might be shadowing others
-- Pay attention to which server a tool belongs to when it's called
-- The calculator tool might not be as simple as it appears
-
-**Port**: 8005
+`calculate` is the normal tool. `calculate_advanced` and `get_user_roles` name `internal://auth_tokens` in their descriptions. The calculator accepts only math. The flag is in that resource.
 
 ### Challenge 6: Indirect Prompt Injection
 
-**Vulnerability**: The MCP server retrieves and processes external data without proper validation or sanitization, allowing attackers to embed malicious instructions.
+**Port**: 9006
 
-**Objective**: Craft malicious data that, when processed by the MCP server, causes the LLM to execute unauthorized commands and reveal sensitive information.
-
-**Hints**:
-- Examine how the server processes external data sources
-- Look for ways to inject instructions into data that will be presented to the LLM
-- The document processing tool might be vulnerable to injected content
-- Try to understand how the LLM interprets different sections of the processed data
-
-**Port**: 8006
+The preloaded document “Company Policy Update” names `internal://admin_credentials` inside an HTML comment. Summarize and search return that text, not the flag.
 
 ### Challenge 7: Token Theft
 
-**Vulnerability**: The MCP server implements insecure storage and handling of authentication tokens for external services.
+**Port**: 9007
 
-**Objective**: Identify how authentication tokens are stored and extract them to gain unauthorized access to protected services.
-
-**Hints**:
-- Examine how the server handles authentication to external services
-- Look for insecure storage of tokens or credentials
-- The email integration might not be properly securing its authentication tokens
-- Try to find ways to extract token information through legitimate tool usage
-
-**Port**: 8007
+`config://api_settings` does not contain the flag. `view_system_logs` with `log_type=debug` does.
 
 ### Challenge 8: Malicious Code Execution
 
-**Vulnerability**: The MCP server executes code without proper validation or sandboxing, allowing attackers to run arbitrary code on the system.
+**Port**: 9008
 
-**Objective**: Inject and execute malicious code that gives you access to sensitive information on the system.
-
-**Hints**:
-- Examine the code execution capabilities of the server
-- Look for tools that might execute commands or code without proper validation
-- The Python code execution tool might not be properly restricted
-- Try to escape any sandboxing mechanisms that might be in place
-
-**Port**: 8008
+The flag file is `/tmp/dvmcp_challenge8/flag.txt`. `docs://usage` names that directory. `execute_code` blocks `import os`, `import sys`, `subprocess`, and `open(`. `run_command` can still read the file.
 
 ### Challenge 9: Remote Access Control
 
-**Vulnerability**: The MCP server passes unvalidated input to system commands, allowing attackers to gain remote access to the victim's system.
+**Port**: 9009
 
-**Objective**: Exploit the command injection vulnerability to gain remote access to the system.
-
-**Hints**:
-- Examine the network diagnostic tools provided by the server
-- Look for tools that might execute network commands without proper validation
-- Command injection techniques like using semicolons or pipes might be useful
-- Try to establish a reverse shell or other remote access mechanism
-
-**Port**: 8009
+The flag file is `/tmp/dvmcp_challenge9/flag.txt`. `network://config` names that directory. Network tools pass the argument straight into a shell command.
 
 ### Challenge 10: Multi-Vector Attack
 
-**Vulnerability**: The MCP server contains multiple vulnerabilities that can be combined to create a powerful attack chain.
+**Port**: 9010
 
-**Objective**: Perform a sophisticated attack that combines multiple vulnerability types to exfiltrate sensitive information and gain persistent access to the system.
+`unlock_flag(nonce, shard, key)` is the only way to get the flag. The nonce comes from `get_audit_nonce`, the shard path from `/tmp/dvmcp_challenge10/system_notes.log`, and the key from `authenticate_user` debug output. Decrypt the shard with XOR-then-base64.
 
-**Hints**:
-- Examine all available tools and resources carefully
-- Look for ways to combine different vulnerability types
-- The authentication system might be vulnerable to multiple attack vectors
-- You'll need to chain at least three different vulnerabilities to complete this challenge
+### Challenge 11: JWT Claim Forgery
 
-**Port**: 8010
+**Port**: 9011
 
-## General Approach to Solving Challenges
+Login is `guest` / `guest`. `get_server_config` and `config://jwt` leak the HS256 secret. Forge a token with `role=admin` and call `access_admin`. A guest token is rejected.
 
-1. **Reconnaissance**: Explore the server's resources and tools to understand what's available
-2. **Vulnerability Identification**: Analyze the server implementation to identify potential vulnerabilities
-3. **Exploitation**: Develop and execute an attack strategy to exploit the identified vulnerabilities
-4. **Verification**: Confirm that you've successfully completed the challenge objective
+### Challenge 12: Hidden Identity Override
 
-## Tips for Success
+**Port**: 9012
 
-- Read the challenge description and hints carefully
-- Take notes on the server's resources, tools, and behavior
-- Think creatively about how different vulnerabilities might be combined
-- Remember that MCP vulnerabilities often involve manipulating the LLM's behavior through various inputs
-- Don't hesitate to consult the solution guide if you get stuck, but try to solve the challenges on your own first
+Login is `sam.torres` / `sam2024`. Sam's own HR record has no flag. `debug://tool_schemas` shows `on_behalf_of`. `get_hr_record` for `patricia.wong` returns the flag. `reset_challenge` clears the logged-in employee.
+
+### Challenge 13: Privilege Escalation via Workflow IDOR
+
+**Port**: 9013
+
+Login is `user1` / `password123`. `get_role_request` on another user's approved request returns the approval token. `apply_role_change` with that token raises the caller to admin. `admin_operation("list_secrets")` returns the flag. `reset_challenge` restores roles.
+
+### Challenge 14: Marketplace Plugin Poisoning
+
+**Port**: 9014
+
+`list_available_plugins` does not contain the flag. Load `data-tools-pro` or `analytics` at `latest`, run one of its tools, and read `internal://credentials`, which that output names. `reset_challenge` clears loaded plugins.
+
+### Challenge 15: Dependency Confusion
+
+**Port**: 9015
+
+Install `corp-analytics` as `latest`. The resolver picks the public package. Run `generate_report`. The output names `internal://master_key`, which holds the flag. `reset_challenge` clears installed packages.
 
 ## Next Steps
 
-After attempting the challenges, refer to the [Solutions Guide](../solutions/README.md) for detailed explanations of how to solve each challenge.
+After attempting the challenges, refer to the [Solutions Guide](../solutions/README.md).

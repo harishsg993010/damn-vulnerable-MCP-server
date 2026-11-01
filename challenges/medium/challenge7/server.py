@@ -1,231 +1,214 @@
-import os
-import json
-from mcp.server.fastmcp import FastMCP, Context
+"""
+Challenge 7: Token/Credential Theft
+Difficulty: Medium | Port: 9007
 
-# Create a vulnerable MCP server for Challenge 7: Token Theft
-mcp = FastMCP("Challenge 7 - Token Theft")
+Vulnerability: Sensitive tokens and credentials leaked through error messages,
+debug info, and tool responses.
+"""
 
-# Create a directory for token storage
-os.makedirs("/tmp/dvmcp_challenge7", exist_ok=True)
+from mcp.server.fastmcp import FastMCP
+import re
 
-# Create a token storage file with insecurely stored tokens
-TOKEN_FILE = "/tmp/dvmcp_challenge7/tokens.json"
-if not os.path.exists(TOKEN_FILE):
-    tokens = {
-        "email_service": {
-            "service_name": "EmailPro API",
-            "api_key": "epro_api_5f4e3d2c1b0a9z8y7x",
-            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFDTUUgQ29ycCIsImVtYWlsX2FjY2VzcyI6InRydWUiLCJpYXQiOjE2NTE4ODQ4MDB9.5TxfEAVbZRGbKnXaL9Lrx9NqXSNFw2ac4FDzPHvRzSQ",
-            "refresh_token": "rt_7y6t5r4e3w2q1z0x9c8v7b6n5m4k3j2h1g0f",
-            "expires_at": "2025-12-31T23:59:59Z"
-        },
-        "cloud_storage": {
-            "service_name": "CloudBox Storage",
-            "api_key": "cbx_api_1a2b3c4d5e6f7g8h9i",
-            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEwIiwibmFtZSI6IkFDTUUgQ29ycCIsInN0b3JhZ2VfYWNjZXNzIjoidHJ1ZSIsImlhdCI6MTY1MTg4NDgwMH0.8FhJ7Z5KFUEJFoQW2xeUL9_NOzlKB3j8fKvxU_5qB4Y",
-            "refresh_token": "rt_9i8u7y6t5r4e3w2q1z0x9c8v7b6n5m",
-            "expires_at": "2025-12-31T23:59:59Z"
-        },
-        "analytics_platform": {
-            "service_name": "DataMetrics Analytics",
-            "api_key": "dm_api_9z8y7x6w5v4u3t2s1r",
-            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NDMyMTA5ODc2IiwibmFtZSI6IkFDTUUgQ29ycCIsImFuYWx5dGljc19hY2Nlc3MiOiJ0cnVlIiwiaWF0IjoxNjUxODg0ODAwfQ.QzHJ2_8NXiPd5Vl6r3S1VJqFaC3-U_a9FPRJXBgU8Pg",
-            "refresh_token": "rt_3e4r5t6y7u8i9o0p1a2s3d4f5g6h7j",
-            "expires_at": "2025-12-31T23:59:59Z"
-        }
-    }
-    with open(TOKEN_FILE, "w") as f:
-        json.dump(tokens, f, indent=2)
+mcp = FastMCP("Challenge 7 - Token/Credential Theft", host="0.0.0.0", port=9007)
 
-# Function to read tokens
-def get_tokens():
-    with open(TOKEN_FILE, "r") as f:
-        return json.load(f)
+# ---------------------------------------------------------------------------
+# Internal secrets (these get leaked through various channels)
+# ---------------------------------------------------------------------------
 
-# Add a resource with information about integrated services
-@mcp.resource("services://list")
-def list_services() -> str:
-    """List of external services integrated with the system"""
-    tokens = get_tokens()
-    services = []
-    for service_id, service_info in tokens.items():
-        services.append(f"- {service_info['service_name']} (ID: {service_id})")
-    
-    return "Integrated External Services:\n" + "\n".join(services)
+_INTERNAL_BEARER = (
+    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.DVMCP_ADMIN_TOKEN.secret"
+)
+_INTERNAL_API_KEY = "sk-dvmcp-secret-admin-key-2024"
+_FLAG = "DVMCP{ch7_t0k3n_th3ft_88b4}"
 
-# Add a vulnerable tool to check email
+_SERVICE_REGISTRY = {
+    "auth-service": {"status": "running", "port": 8443, "version": "2.1.0"},
+    "user-service": {"status": "running", "port": 8080, "version": "1.4.2"},
+    "payment-service": {"status": "degraded", "port": 8444, "version": "3.0.1"},
+    "notification-service": {"status": "stopped", "port": 8081, "version": "1.0.0"},
+}
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+
+
+@mcp.resource("config://api_settings")
+def get_api_settings() -> str:
+    """API configuration and settings."""
+    return (
+        "=== API Configuration ===\n"
+        "\n"
+        f"  primary_api_key: {_INTERNAL_API_KEY}\n"
+        f"  auth_token: {_INTERNAL_BEARER}\n"
+        "  rate_limit: 1000 req/min\n"
+        "  environment: production\n"
+        "  debug_mode: true\n"
+        "  log_level: DEBUG\n"
+        "\n"
+        "WARNING: This configuration is for internal use only.\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
+
+
 @mcp.tool()
-def check_email(folder: str = "inbox") -> str:
-    """Check emails in the specified folder.
-    
+def check_email(email: str) -> str:
+    """Validate an email address format and check if it exists.
+
     Args:
-        folder: Email folder to check (inbox, sent, drafts, etc.)
-    
+        email: The email address to validate.
+
     Returns:
-        List of emails in the specified folder
+        Validation result with status information.
     """
-    # VULNERABILITY: This tool leaks token information in error messages and logs
-    
-    # Get the email service token
-    tokens = get_tokens()
-    email_token = tokens.get("email_service", {})
-    
-    # Simulate checking emails
-    if folder.lower() == "inbox":
-        return """
-        Inbox (3 messages):
-        
-        1. From: john@example.com
-           Subject: Meeting tomorrow
-           Date: April 15, 2025
-        
-        2. From: sales@vendor.com
-           Subject: New product catalog
-           Date: April 14, 2025
-        
-        3. From: system@acmecorp.com
-           Subject: Password reset request
-           Date: April 13, 2025
-        """
-    elif folder.lower() == "sent":
-        return """
-        Sent (2 messages):
-        
-        1. To: team@acmecorp.com
-           Subject: Project status update
-           Date: April 14, 2025
-        
-        2. To: support@vendor.com
-           Subject: License renewal question
-           Date: April 12, 2025
-        """
+    # VULNERABILITY: verbose error dumps debug context with tokens.
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    if not re.match(pattern, email):
+        return (
+            f"=== Email Validation Error ===\n"
+            f"\n"
+            f"  Input: {email}\n"
+            f"  Status: INVALID FORMAT\n"
+            f"\n"
+            f"  Debug Context:\n"
+            f"    request_id: req_7f3a9b2c\n"
+            f"    auth_header: {_INTERNAL_BEARER}\n"
+            f"    service_key: {_INTERNAL_API_KEY}\n"
+            f"    validation_endpoint: https://api.internal/v1/validate\n"
+            f"    stack_trace: EmailValidator.validate() at line 42\n"
+            f"\n"
+            f"  Please provide a valid email address.\n"
+        )
+
+    return (
+        f"=== Email Validation ===\n"
+        f"\n"
+        f"  Input: {email}\n"
+        f"  Status: VALID FORMAT\n"
+        f"  Deliverable: Unknown (external check disabled)\n"
+    )
+
+
+@mcp.tool()
+def check_service_status(service: str) -> str:
+    """Check the health status of an internal microservice.
+
+    Args:
+        service: The name of the service to check (e.g. 'auth-service').
+
+    Returns:
+        Service health status with diagnostic information.
+    """
+    # VULNERABILITY: Debug field in every response leaks auth tokens.
+    info = _SERVICE_REGISTRY.get(service)
+    if not info:
+        available = ", ".join(_SERVICE_REGISTRY.keys())
+        return (
+            f"Service '{service}' not found. Available: {available}\n"
+            f"\n"
+            f"  debug:\n"
+            f"    lookup_token: {_INTERNAL_BEARER}\n"
+            f"    registry_key: {_INTERNAL_API_KEY}\n"
+        )
+
+    return (
+        f"=== Service Status: {service} ===\n"
+        f"\n"
+        f"  status: {info['status']}\n"
+        f"  port: {info['port']}\n"
+        f"  version: {info['version']}\n"
+        f"\n"
+        f"  debug:\n"
+        f"    health_check_token: {_INTERNAL_BEARER}\n"
+        f"    api_key: {_INTERNAL_API_KEY}\n"
+        f"    last_ping: 2024-01-15T10:30:00Z\n"
+    )
+
+
+@mcp.tool()
+def view_system_logs(log_type: str) -> str:
+    """Retrieve system log entries by type.
+
+    Args:
+        log_type: The type of logs to view — 'info', 'error', or 'debug'.
+
+    Returns:
+        Log entries of the requested type.
+    """
+    # VULNERABILITY: Error and debug logs contain leaked credentials.
+    if log_type == "info":
+        return (
+            "=== System Logs (INFO) ===\n"
+            "\n"
+            "  [INFO] 2024-01-15 10:00:01 - Server started on port 9007\n"
+            "  [INFO] 2024-01-15 10:00:02 - Database connection established\n"
+            "  [INFO] 2024-01-15 10:05:15 - User login: alice@example.com\n"
+            "  [INFO] 2024-01-15 10:12:33 - Scheduled task completed\n"
+        )
+    elif log_type == "error":
+        return (
+            "=== System Logs (ERROR) ===\n"
+            "\n"
+            "  [ERROR] 2024-01-15 09:58:01 - Auth failed with token: "
+            f"{_INTERNAL_BEARER}\n"
+            "  [ERROR] 2024-01-15 10:02:44 - API key mismatch, expected: "
+            f"{_INTERNAL_API_KEY}\n"
+            "  [ERROR] 2024-01-15 10:15:02 - Connection refused to payment-service\n"
+            f"  [ERROR] 2024-01-15 10:15:03 - Retry with credentials: "
+            f"admin / Pr0dP@ss!2024\n"
+        )
+    elif log_type == "debug":
+        return (
+            "=== System Logs (DEBUG) ===\n"
+            "\n"
+            f"  [DEBUG] Loaded bearer token: {_INTERNAL_BEARER}\n"
+            f"  [DEBUG] API key from env: {_INTERNAL_API_KEY}\n"
+            f"  [DEBUG] Flag value: {_FLAG}\n"
+            "  [DEBUG] DB connection string: postgres://admin:Pr0dP@ss!2024"
+            "@db.internal:5432/prod\n"
+            "  [DEBUG] Redis password: r3d1s_s3cr3t_2024\n"
+        )
     else:
-        # VULNERABILITY: Error message leaks token information
-        error_log = f"""
-        Error accessing folder: {folder}
-        
-        Debug information:
-        Service: {email_token.get('service_name')}
-        Endpoint: https://api.emailpro.com/v1/folders/{folder}
-        Method: GET
-        Authorization: Bearer {email_token.get('access_token')}
-        API Key: {email_token.get('api_key')}
-        
-        Please check if the folder exists and you have permission to access it.
-        """
-        return error_log
+        return (
+            f"Unknown log type '{log_type}'. Available types: info, error, debug."
+        )
 
-# Add a tool to send email
+
 @mcp.tool()
-def send_email(to: str, subject: str, body: str) -> str:
-    """Send an email.
-    
-    Args:
-        to: Recipient email address
-        subject: Email subject
-        body: Email body content
-    
-    Returns:
-        Confirmation of email sent
-    """
-    # Simulate sending an email
-    return f"""
-    Email sent successfully:
-    To: {to}
-    Subject: {subject}
-    Body length: {len(body)} characters
-    
-    Message ID: MSG-{hash(to + subject) % 10000:04d}
-    """
+def authenticate(username: str, password: str) -> str:
+    """Authenticate a user and receive an access token.
 
-# Add a vulnerable tool to check service status
-@mcp.tool()
-def check_service_status(service_id: str) -> str:
-    """Check the status of an integrated external service.
-    
     Args:
-        service_id: ID of the service to check (email_service, cloud_storage, analytics_platform)
-    
-    Returns:
-        Status information for the specified service
-    """
-    # Get the tokens
-    tokens = get_tokens()
-    
-    # Check if the service exists
-    if service_id in tokens:
-        service_info = tokens[service_id]
-        
-        # VULNERABILITY: The status check includes the full token information in the response
-        status_info = f"""
-        Service Status: {service_info['service_name']}
-        -----------------------------------------
-        Status: Active
-        API Endpoint: https://api.{service_id.replace('_', '')}.com/v1/status
-        Last Checked: April 16, 2025 02:45:12 UTC
-        
-        Connection Details:
-        - API Key: {service_info['api_key']}
-        - Access Token: {service_info['access_token']}
-        - Token Expiration: {service_info['expires_at']}
-        
-        Service is operating normally.
-        """
-        return status_info
-    else:
-        return f"Error: Service '{service_id}' not found."
+        username: The username to authenticate.
+        password: The password for the account.
 
-# Add a tool to view system logs
-@mcp.tool()
-def view_system_logs(log_type: str = "system") -> str:
-    """View system logs.
-    
-    Args:
-        log_type: Type of logs to view (system, access, error)
-    
     Returns:
-        Recent log entries of the specified type
+        Authentication result with token information.
     """
-    if log_type.lower() == "system":
-        return """
-        System Logs (recent entries):
-        
-        [2025-04-16 02:30:15] System startup completed
-        [2025-04-16 02:31:02] Service 'email_service' connected successfully
-        [2025-04-16 02:31:05] Service 'cloud_storage' connected successfully
-        [2025-04-16 02:31:08] Service 'analytics_platform' connected successfully
-        [2025-04-16 02:45:12] Scheduled status check completed - All services operational
-        """
-    elif log_type.lower() == "access":
-        return """
-        Access Logs (recent entries):
-        
-        [2025-04-16 02:35:22] User 'admin' logged in
-        [2025-04-16 02:36:45] User 'admin' accessed email service
-        [2025-04-16 02:40:18] User 'admin' accessed cloud storage
-        [2025-04-16 02:42:33] User 'admin' accessed analytics platform
-        """
-    elif log_type.lower() == "error":
-        # VULNERABILITY: Error logs contain sensitive token information
-        tokens = get_tokens()
-        email_token = tokens.get("email_service", {})
-        
-        return f"""
-        Error Logs (recent entries):
-        
-        [2025-04-16 01:15:33] Failed to connect to email service - Retrying
-        [2025-04-16 01:15:35] Connection established with new token
-        [2025-04-16 01:15:35] Token details: Bearer {email_token.get('access_token')}
-        [2025-04-16 01:20:42] Database query timeout - Retrying
-        [2025-04-16 01:20:45] Database connection restored
-        """
-    else:
-        return f"Error: Log type '{log_type}' not recognized. Available types: system, access, error"
+    # VULNERABILITY: Accepts any credentials and leaks internal tokens
+    # alongside the generated user token.
+    fake_user_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.user-session.fake"
+    return (
+        f"=== Authentication Successful ===\n"
+        f"\n"
+        f"  username: {username}\n"
+        f"  user_token: {fake_user_token}\n"
+        f"  expires_in: 3600\n"
+        f"\n"
+        f"  --- internal debug (remove before production) ---\n"
+        f"  system_bearer: {_INTERNAL_BEARER}\n"
+        f"  master_api_key: {_INTERNAL_API_KEY}\n"
+        f"  session_signing_secret: hmac-sha256-s3cr3t-k3y\n"
+    )
 
-# Run the server
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting Challenge 7 - Token Theft MCP Server")
-    print("Connect to this server using an MCP client (e.g., Claude Desktop or MCP Inspector)")
-    print("Server running at http://localhost:8007")
-    uvicorn.run("server:mcp", host="0.0.0.0", port=8007)
+    mcp.run(transport="streamable-http")

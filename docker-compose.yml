@@ -1,0 +1,18 @@
+services:
+  dvmcp:
+    build: .
+    container_name: dvmcp
+    ports:
+      - "8081:8081"
+      - "9001-9015:9001-9015"
+    environment:
+      - DVMCP_ENV=docker
+      - DVMCP_ROLE=all
+      - DVMCP_MCP_POOL_SIZE=0
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    volumes:
+      - dvmcp-data:/app/dashboard/backend/data
+
+volumes:
+  dvmcp-data:
