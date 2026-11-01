@@ -132,3 +132,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Author
 
 This project is created by Harish Santhanalakshmi Ganesan using cursor IDE and Manus AI.
+
+thanks to Ankit who presented this in Blackhat Canada and Blackhat Asia 
+
+
